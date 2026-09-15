@@ -233,9 +233,13 @@ h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-disp);font-weight:800;le
 #roomid:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
 
 /* ---------- record rows ---------- */
-.rec{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.rec{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.rec-list{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.rec-line{display:flex;align-items:center;gap:8px}
+.rec-n{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);flex:none;min-width:34px;white-space:nowrap}
+.rec-line.group-start{margin-top:3px;padding-top:9px;border-top:1px dashed var(--line)}
 .rec:last-child{border-bottom:0}
-.rec-who{font-family:var(--f-disp);font-weight:800;font-size:12px;border:1px solid var(--line-strong);border-radius:4px;padding:1px 6px;color:var(--ink-2);flex:none}
+.rec-who{margin-top:7px;font-family:var(--f-disp);font-weight:800;font-size:12px;border:1px solid var(--line-strong);border-radius:4px;padding:1px 6px;color:var(--ink-2);flex:none}
 .rec-who.self{border-color:var(--accent-edge);color:var(--ink);background:color-mix(in srgb,var(--accent) 28%,transparent)}
 .rec-input{
   flex:1;min-width:0;font:inherit;font-size:14px;color:var(--ink);
@@ -243,6 +247,22 @@ h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-disp);font-weight:800;le
 }
 .rec-input::placeholder{color:var(--ink-3)}
 .rec-input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.rec-field{position:relative;flex:1;min-width:0;display:flex}
+.rec-field .rec-input{flex:1;min-width:0}
+
+/* 入力補完のドロップダウン */
+.ac{
+  position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:40;
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:9px;
+  box-shadow:0 10px 26px rgba(0,0,0,.22);max-height:216px;overflow-y:auto;
+  display:flex;flex-direction:column;padding:4px;
+}
+.ac-item{
+  border:0;background:transparent;text-align:left;border-radius:6px;
+  padding:9px 10px;font-size:14px;font-weight:500;line-height:1.3;color:var(--ink);
+}
+.ac-item:hover,.ac-item:focus{background:color-mix(in srgb,var(--accent) 34%,var(--surface))}
+.ac-empty{padding:9px 10px;font-size:13px;color:var(--ink-3)}
 
 /* ---------- sticky action ---------- */
 .actionbar{
@@ -332,6 +352,89 @@ const RACKET_STEPS = [
   { actor:"1P", count:1 }, { actor:"2P", count:2 }, { actor:"1P", count:1 }
 ];
 
+/* 記録欄の候補。ここに並べた name が入力補完のドロップダウンに出る。
+   追加するときは末尾に1行足すだけでよい。id は付けても付けなくてもよく、
+   'ニューキャラ' のように名前だけの文字列で書いても動く。
+   一覧にない名前もそのまま手入力できる。 */
+const CHARACTERS = [
+  { id:'ch01', name:'マリオ' },
+  { id:'ch02', name:'ルイージ' },
+  { id:'ch03', name:'ピーチ' },
+  { id:'ch04', name:'デイジー' },
+  { id:'ch05', name:'ロゼッタ' },
+  { id:'ch06', name:'ポリーン' },
+  { id:'ch07', name:'ワリオ' },
+  { id:'ch08', name:'ワルイージ' },
+  { id:'ch09', name:'キノピオ' },
+  { id:'ch10', name:'キノピコ' },
+  { id:'ch11', name:'チコ' },
+  { id:'ch12', name:'ヨッシー' },
+  { id:'ch13', name:'クッパ' },
+  { id:'ch14', name:'クッパJr.' },
+  { id:'ch15', name:'ドンキー' },
+  { id:'ch16', name:'テレサ' },
+  { id:'ch17', name:'ヘイホー' },
+  { id:'ch18', name:'ノコノコ' },
+  { id:'ch19', name:'カメック' },
+  { id:'ch20', name:'ガボン' },
+  { id:'ch21', name:'ディディー' },
+  { id:'ch22', name:'ワンワン' },
+  { id:'ch23', name:'キャサリン' },
+  { id:'ch24', name:'パタパタ' },
+  { id:'ch25', name:'ボスパックン' },
+  { id:'ch26', name:'パックンフラワー' },
+  { id:'ch27', name:'ブンブン' },
+  { id:'ch28', name:'ゲッソー' },
+  { id:'ch29', name:'ホネクッパ' },
+  { id:'ch30', name:'カロン' },
+  { id:'ch31', name:'ベビィマリオ' },
+  { id:'ch32', name:'ベビィルイージ' },
+  { id:'ch33', name:'ベビィピーチ' },
+  { id:'ch34', name:'ハナチャン' },
+  { id:'ch35', name:'トッテン' },
+  { id:'ch36', name:'クリボー' },
+  { id:'ch37', name:'ベビィワリオ' },
+  { id:'ch38', name:'ベビィワルイージ' }
+];
+
+const RACKETS = [
+  { id:'rk01', name:'ファイア' },
+  { id:'rk02', name:'アイス' },
+  { id:'rk03', name:'サンダー' },
+  { id:'rk04', name:'ビューゴー' },
+  { id:'rk05', name:'ドロドロ' },
+  { id:'rk06', name:'マメキノコ' },
+  { id:'rk07', name:'ファイアフラワー' },
+  { id:'rk08', name:'アイスフラワー' },
+  { id:'rk09', name:'スター' },
+  { id:'rk10', name:'たつまき' },
+  { id:'rk11', name:'サンボ' },
+  { id:'rk12', name:'シャドウ' },
+  { id:'rk13', name:'ファイアバー' },
+  { id:'rk14', name:'フリーズ' },
+  { id:'rk15', name:'ビリキュー' },
+  { id:'rk16', name:'カーブ' },
+  { id:'rk17', name:'インク' },
+  { id:'rk18', name:'バナナ' },
+  { id:'rk19', name:'かざん' },
+  { id:'rk20', name:'おばけ' },
+  { id:'rk21', name:'ダッシュ' },
+  { id:'rk22', name:'ブル' },
+  { id:'rk23', name:'トゲゾー' },
+  { id:'rk24', name:'マジック' },
+  { id:'rk25', name:'キラー' },
+  { id:'rk26', name:'ドッスン' },
+  { id:'rk27', name:'オシダシー' },
+  { id:'rk28', name:'メタル' },
+  { id:'rk29', name:'ハテナ' },
+  { id:'rk30', name:'ブラックホール' }
+];
+
+/* 文字列でもオブジェクトでも受け取れるようにする */
+const nameList = arr => arr.map(x => typeof x === "string" ? x : x.name);
+const CHAR_NAMES   = nameList(CHARACTERS);
+const RACKET_NAMES = nameList(RACKETS);
+
 const RULES = {
   "classic-singles": { name:"クラシックシングルス", doubles:false, fever:false },
   "classic-doubles": { name:"クラシックダブルス",   doubles:true,  fever:false },
@@ -373,7 +476,7 @@ function charSteps(i){
    状態
    ========================================================================== */
 
-const KEY = "mt-navi-v5";
+const KEY = "mt-navi-v6";
 let S, undoStack = [], sheet = null, copied = "", dialog = null;
 
 /* アーティファクト内では window.confirm が使えないことがあるため、自前のダイアログを使う */
@@ -400,7 +503,8 @@ function newMatch(side){
   return {
     side, phase:"court",
     courtStep:0, banDraft:[], bans:[], court:null,
-    chars:{ "1P":"", "2P":"" }, rackets:{ "1P":"", "2P":"" },
+    chars:{ "1P":["","","",""], "2P":["","","",""] },
+    rackets:{ "1P":["","","",""], "2P":["","","",""] },
     result:null
   };
 }
@@ -424,6 +528,10 @@ const pickName  = id => pickCourt(id).name || "—";
 const frameOf   = id => pickCourt(id).frame;
 
 const bannedFrames = m => m.bans.map(b=>b.id);
+/* 記録欄（配列）を表示用の1行にする */
+const showRec = (arr, join) => (arr||[]).map(s=>String(s||"").trim()).filter(Boolean).join(join);
+const showChars   = arr => showRec(arr, " × ");
+const showRackets = arr => showRec(arr, "、");
 /* 追加BANの対象は「1戦目で使ったコートの枠」。ハードで戦ったならハード枠＝両方のハード。 */
 function extraBanTarget(){ const m1 = S.matches[0]; return m1 && m1.court ? frameOf(m1.court) : null; }
 function needsResult(i){ return i < 2; }
@@ -631,7 +739,7 @@ function courtPhase(){
     return tile({ img:PICK_IMG[c.id], name:c.name, tint:frame(c.frame).tint,
       act:`court:${c.id}`, pressed:m.court===c.id, disabled:isBanned, off:isBanned });
   }).join("");
-  const chat = (mine && m.court) ? chatBox("チャット文", `コートは${pickName(m.court)}でお願いします。`, "court") : "";
+  const chat = (mine && m.court) ? chatBox("チャット文", `${pickName(m.court)}でお願いします。`, "court") : "";
 
   return turnBanner(mine?"me":"them","コート選択 ＞ 決定",
       mine?"あなたがコートを決める番です":"相手のコート決定待ちです",
@@ -659,13 +767,23 @@ function guidePhase(cfg){
       ${mine?`<span class="rail-tag">あなた</span>`:""}</div>`;
   }).join("");
 
-  const rec = ["1P","2P"].map(p=>`
-    <div class="rec">
+  const rec = ["1P","2P"].map(p=>{
+    const vals = cfg.store(m)[p];
+    const lines = Array.from({length:cfg.count},(_,k)=>`
+      <div class="rec-line ${cfg.groups && k>0 && k%cfg.groups===0 ? "group-start" : ""}">
+        ${cfg.count>1?`<span class="rec-n">${esc(cfg.labels[k])}</span>`:""}
+        <div class="rec-field">
+          <input class="rec-input" id="rec-${cfg.key}-${p}-${k}" data-rec="${cfg.key}:${p}:${k}"
+            autocomplete="off" autocorrect="off" spellcheck="false"
+            placeholder="${esc(cfg.placeholder)}" value="${esc(vals[k]||"")}">
+          <div class="ac" hidden></div>
+        </div>
+      </div>`).join("");
+    return `<div class="rec">
       <span class="rec-who ${p===m.side?"self":""}">${p}${p===m.side?" 自分":""}</span>
-      <input class="rec-input" id="rec-${cfg.key}-${p}" data-rec="${cfg.key}:${p}"
-        autocomplete="off" placeholder="${esc(cfg.placeholder)}"
-        value="${esc(cfg.store(m)[p])}">
-    </div>`).join("");
+      <div class="rec-list">${lines}</div>
+    </div>`;
+  }).join("");
 
   return turnBanner("calm",`${S.cur+1}戦目 ・ ${cfg.label}選択`, cfg.title, cfg.note)
     + `<div class="section"><div class="section-head"><h2>選択順</h2>
@@ -685,7 +803,8 @@ function charCfg(){
       : "2戦目以降は被せ合いなしです。1P → 2P の順に選択します。",
     orderHint: i===0 ? "被せ合いあり" : "被せ合いなし",
     steps: charSteps(i), store: m=>m.chars,
-    placeholder: dbl ? "例：マリオ × クッパ" : "例：マリオ",
+    count: dbl ? 2 : 1, labels:["1体目","2体目"], join:" × ",
+    options: CHAR_NAMES, placeholder:"入力して選ぶ（例：マリオ）",
     doneAct:"chars-done",
     doneLabel: rule().fever ? "ラケット選択へ" : "キャラ選択が終わった"
   };
@@ -698,7 +817,13 @@ function racketCfg(){
     orderHint:"1P → 2P → 1P",
     steps: RACKET_STEPS.map(s=>({ actor:s.actor, what:`ラケットを${s.count}本選択` })),
     store: m=>m.rackets,
-    placeholder:"例：ラケットA、ラケットB",
+    /* 1人につき2本。ダブルスは2人 × 2本 = 1チーム4枠 */
+    count: rule().doubles ? 4 : 2, groups: 2,
+    labels: rule().doubles
+      ? ["1人目 1本目","1人目 2本目","2人目 1本目","2人目 2本目"]
+      : ["1本目","2本目"],
+    join:"、",
+    options: RACKET_NAMES, placeholder:"入力して選ぶ（例：ファイア）",
     doneAct:"rackets-done", doneLabel:"ラケット選択が終わった"
   };
 }
@@ -713,10 +838,10 @@ function playPhase(){
   return turnBanner("calm",`${S.cur+1}戦目`,"試合を行ってください",`コート：${pickName(m.court)}`)
     + `<div class="section"><div class="card"><dl class="kv">
         ${row("コート", pickName(m.court))}
-        ${row(`1P${m.side==="1P"?"（自分）":""}`, m.chars["1P"])}
-        ${row(`2P${m.side==="2P"?"（自分）":""}`, m.chars["2P"])}
-        ${r.fever ? row("1P ラケット", m.rackets["1P"]) : ""}
-        ${r.fever ? row("2P ラケット", m.rackets["2P"]) : ""}
+        ${row(`1P${m.side==="1P"?"（自分）":""}`, showChars(m.chars["1P"]))}
+        ${row(`2P${m.side==="2P"?"（自分）":""}`, showChars(m.chars["2P"]))}
+        ${r.fever ? row("1P ラケット", showRackets(m.rackets["1P"])) : ""}
+        ${r.fever ? row("2P ラケット", showRackets(m.rackets["2P"])) : ""}
       </dl></div></div>`
     + actionBar(`<button class="primary" data-act="play-done">試合が終わった</button>`);
 }
@@ -771,10 +896,10 @@ function renderSheet(){
       <dl class="hist-body">
         ${bans}
         <dt>決定コート</dt><dd>${m.court?esc(pickName(m.court)):dash}</dd>
-        <dt>1P キャラ</dt><dd>${m.chars["1P"]?esc(m.chars["1P"]):dash}</dd>
-        <dt>2P キャラ</dt><dd>${m.chars["2P"]?esc(m.chars["2P"]):dash}</dd>
-        ${r.fever?`<dt>1P ラケット</dt><dd>${m.rackets["1P"]?esc(m.rackets["1P"]):dash}</dd>`:""}
-        ${r.fever?`<dt>2P ラケット</dt><dd>${m.rackets["2P"]?esc(m.rackets["2P"]):dash}</dd>`:""}
+        <dt>1P キャラ</dt><dd>${showChars(m.chars["1P"])?esc(showChars(m.chars["1P"])):dash}</dd>
+        <dt>2P キャラ</dt><dd>${showChars(m.chars["2P"])?esc(showChars(m.chars["2P"])):dash}</dd>
+        ${r.fever?`<dt>1P ラケット</dt><dd>${showRackets(m.rackets["1P"])?esc(showRackets(m.rackets["1P"])):dash}</dd>`:""}
+        ${r.fever?`<dt>2P ラケット</dt><dd>${showRackets(m.rackets["2P"])?esc(showRackets(m.rackets["2P"])):dash}</dd>`:""}
       </dl></div>`;
   }).join("");
 
@@ -887,6 +1012,71 @@ async function copyText(id, text){
   if(ok){ copied = id; render(); setTimeout(()=>{ if(copied===id){ copied=""; render(); } }, 2200); }
 }
 
+/* ==========================================================================
+   記録欄の入力補完（絞り込みドロップダウン）
+   ========================================================================== */
+
+/* ひらがなをカタカナに寄せて比較する（「まりお」でも「マリオ」が出るように） */
+const norm = s => String(s).replace(/[ぁ-ゖ]/g,
+  c => String.fromCharCode(c.charCodeAt(0) + 0x60)).toLowerCase();
+
+/* 1枠 = 1体 / 1本。重複の制限はしない。 */
+const acOptions = key => key === "rackets" ? RACKET_NAMES : CHAR_NAMES;
+function acTarget(inp){
+  const [key, side, k] = inp.dataset.rec.split(":");
+  return { key, side, idx:+k };
+}
+
+function closeAC(inp){
+  const box = inp.parentElement && inp.parentElement.querySelector(".ac");
+  if(box) box.hidden = true;
+}
+function openAC(inp){
+  const box = inp.parentElement.querySelector(".ac");
+  const { key } = acTarget(inp);
+  const opts = acOptions(key), value = inp.value.trim(), q = norm(value);
+  /* 候補どおり入力済みなら閉じる */
+  if(opts.includes(value)){ box.hidden = true; return; }
+  const list = opts.filter(o => !q || norm(o).includes(q));
+  if(!list.length){ box.hidden = true; return; }
+  box.innerHTML = list.map(o =>
+    `<button type="button" class="ac-item" data-val="${esc(o)}">${esc(o)}</button>`).join("");
+  box.hidden = false;
+}
+function applyAC(inp, val){
+  const { key, side, idx } = acTarget(inp);
+  inp.value = val;
+  match()[key][side][idx] = val;
+  save();
+  closeAC(inp);
+  inp.blur();
+}
+function wireAC(){
+  document.querySelectorAll(".rec-input").forEach(inp=>{
+    inp.addEventListener("focus", ()=>openAC(inp));
+    inp.addEventListener("input", ()=>openAC(inp));
+    inp.addEventListener("blur",  ()=>setTimeout(()=>closeAC(inp), 160));
+    inp.addEventListener("keydown", e=>{
+      if(e.key === "Escape"){ closeAC(inp); e.target.blur(); }
+      if(e.key === "Enter"){
+        const first = inp.parentElement.querySelector(".ac:not([hidden]) .ac-item");
+        if(first){ e.preventDefault(); applyAC(inp, first.dataset.val); }
+        else inp.blur();
+      }
+    });
+  });
+}
+document.addEventListener("mousedown", e=>{
+  const it = e.target.closest(".ac-item");
+  if(!it) return;
+  e.preventDefault();                       /* blur より先に確定させる */
+  applyAC(it.closest(".rec-field").querySelector(".rec-input"), it.dataset.val);
+});
+
+/* ==========================================================================
+   描画
+   ========================================================================== */
+
 function render(){
   const body =
     S.screen === "rule" ? screenRule() :
@@ -896,6 +1086,7 @@ function render(){
   document.getElementById("app").innerHTML = topbar() + body;
   renderSheet();
   renderDialog();
+  wireAC();
 }
 
 document.addEventListener("click", e=>{
@@ -923,8 +1114,8 @@ document.addEventListener("input", e=>{
   }
   const rec = e.target.dataset && e.target.dataset.rec;
   if(rec){
-    const [key, side] = rec.split(":");
-    match()[key][side] = e.target.value;
+    const [key, side, k] = rec.split(":");
+    match()[key][side][+k] = e.target.value;
     save();
   }
 });
