@@ -530,7 +530,7 @@ function screenRoom(){
   const id = S.roomId.trim(), full = id.length === ROOM_ID_LEN;
   return turnBanner(host?"me":"them","ルーム作成",
       host?"あなたがルームを作成します":"1PのルームID待ちです",
-      host?"下の設定でルームを立て、6桁のルームIDを入力してください。":"Tonamelに届いた6桁のIDでルームに参加してください。")
+      host?"下の設定でルームを立て、6文字のルームIDを入力してください。":"Tonamelに届いた6文字のIDでルームに参加してください。")
     + `<div class="section"><div class="section-head"><h2>ゲーム内設定</h2></div>
         <div class="card"><dl class="kv">
           <dt>試合形式</dt><dd>${r.doubles?"ダブルス":"シングルス"}</dd>
@@ -538,11 +538,12 @@ function screenRoom(){
           <dt>ルーム作成</dt><dd>1P が作成</dd>
         </dl></div></div>`
     + `<div class="section"><div class="section-head"><h2>ルームID</h2>
-        <span class="hint">${id.length} / ${ROOM_ID_LEN} 桁</span></div>
+        <span class="hint">${id.length} / ${ROOM_ID_LEN} 文字</span></div>
         <div class="card"><div class="field">
-          <label for="roomid">${host?"ゲーム内に表示された6桁のIDを入力":"1Pから届いた6桁のIDを控える（任意）"}</label>
-          <input id="roomid" type="text" inputmode="numeric" autocomplete="off"
-            maxlength="${ROOM_ID_LEN}" placeholder="000000" value="${esc(S.roomId)}">
+          <label for="roomid">${host?"ゲーム内に表示された6文字のIDを入力（英数字）":"1Pから届いた6文字のIDを控える（任意）"}</label>
+          <input id="roomid" type="text" inputmode="text" autocomplete="off"
+            autocapitalize="characters" autocorrect="off" spellcheck="false"
+            placeholder="A1B2C3" value="${esc(S.roomId)}">
         </div></div>
         ${host && full ? chatBox("チャット文","ルームIDは "+id+" です。よろしくお願いします。","room") : ""}
       </div>`
