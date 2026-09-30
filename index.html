@@ -213,6 +213,7 @@ h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--f-disp);font-weight:800;le
 }
 .rail-item.mine .rail-who{border-color:var(--accent-edge);color:var(--ink);background:color-mix(in srgb,var(--accent) 28%,transparent)}
 .rail-tag{margin-left:auto;font-size:11px;font-weight:700;opacity:.72;flex:none}
+.rail-role{font-size:11px;font-weight:700;color:var(--ink-3);flex:none}
 
 /* ---------- chat box ---------- */
 .chat{margin-top:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
@@ -347,10 +348,16 @@ const PICK_COURTS = [
 
 const ROOM_ID_LEN = 6;
 
-/* フィーバーラケット選択 ① 1P 1本 → ② 2P 2本 → ③ 1P 1本 */
-const RACKET_STEPS = [
-  { actor:"1P", count:1 }, { actor:"2P", count:2 }, { actor:"1P", count:1 }
-];
+/* フィーバーラケット選択フェーズ
+   1P → 2P → 1P → 2P の順に1本ずつ（2戦目以降は 1P＝前戦の勝者、2P＝敗者）。
+   ダブルスは1ステップで2人ぶん＝2本（1チーム合計4本）。 */
+function racketSteps(){
+  const n = rule().doubles ? 2 : 1;
+  return [
+    { actor:"1P", count:n }, { actor:"2P", count:n },
+    { actor:"1P", count:n }, { actor:"2P", count:n }
+  ];
+}
 
 /* 記録欄の候補。ここに並べた name が入力補完のドロップダウンに出る。
    追加するときは末尾に1行足すだけでよい。id は付けても付けなくてもよく、
@@ -653,7 +660,9 @@ function screenRoom(){
             autocapitalize="characters" autocorrect="off" spellcheck="false"
             placeholder="A1B2C3" value="${esc(S.roomId)}">
         </div></div>
-        ${host && full ? chatBox("チャット文","ルームIDは "+id+" です。よろしくお願いします。","room") : ""}
+        ${host
+          ? (full ? chatBox("チャット文","ルームIDは "+id+" です。よろしくお願いします。","room") : "")
+          : chatBox("あいさつ","よろしくお願いします。","hello")}
       </div>`
     + actionBar(`<button class="primary" data-act="room-done" ${host && !full ? "disabled" : ""}>
         ${host?"IDを送った・1戦目へ":"参加した・1戦目へ"}</button>`);
@@ -763,6 +772,7 @@ function guidePhase(cfg){
     const mine = isMe(m, s.actor);
     return `<div class="rail-item ${mine?"mine":""}">
       <span class="rail-n">${i+1}</span><span class="rail-who">${s.actor}</span>
+      ${s.role?`<span class="rail-role">${esc(s.role)}</span>`:""}
       <span class="rail-what">${esc(s.what)}</span>
       ${mine?`<span class="rail-tag">あなた</span>`:""}</div>`;
   }).join("");
@@ -813,9 +823,16 @@ function charCfg(){
 function racketCfg(){
   return {
     key:"rackets", label:"フィーバーラケット", title:"この順番でラケットを選びます",
-    note:"① 1Pが1本 → ② 2Pが2本 → ③ 1Pが1本の順です。相手と同じラケットを選べます。自分が1本目に選んだラケットは選べません。",
-    orderHint:"1P → 2P → 1P",
-    steps: RACKET_STEPS.map(s=>({ actor:s.actor, what:`ラケットを${s.count}本選択` })),
+    note: (S.cur===0
+      ? "1P → 2P → 1P → 2P の順に1本ずつ選びます。"
+      : "前の試合の勝者 → 敗者 → 勝者 → 敗者 の順に1本ずつ選びます。勝者が1P、敗者が2Pです。")
+      + "相手と同じラケットを選べます。自分が1本目に選んだラケットは選べません。",
+    orderHint:"1P → 2P → 1P → 2P",
+    steps: racketSteps().map(s=>({
+      actor: s.actor,
+      what: `ラケットを${s.count}本選択`,
+      role: S.cur===0 ? "" : (s.actor==="1P" ? "勝者" : "敗者")
+    })),
     store: m=>m.rackets,
     /* 1人につき2本。ダブルスは2人 × 2本 = 1チーム4枠 */
     count: rule().doubles ? 4 : 2, groups: 2,
